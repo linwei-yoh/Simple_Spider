@@ -9,3 +9,4 @@ from .kuaidaili import kuaidaili
 from .superfastip import superfastip
 from .xiciSpider import xiciSpider
 from .sixsixip import sixsixip
+from .En_ProxyNova import ProxyNova

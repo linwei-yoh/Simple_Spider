@@ -17,12 +17,16 @@ MinSize = 500
 
 
 class ProxyPoolProcess(Process):
-    def __init__(self):
+    def __init__(self,CN=True):
         Process.__init__(self, name='Proxy')
         self.daemon = True
+        self.china = CN
 
     def run(self):
-        self.ProxySites = [bugng(), xiciSpider(), kuaidaili(), superfastip(), sixsixip()]
+        if self.china:
+            self.ProxySites = [bugng(), xiciSpider(), kuaidaili(), superfastip(), sixsixip()]
+        else:
+            self.ProxySites = [ProxyNova()]
         self.client = RedisClient()
         try:
             self._run()
