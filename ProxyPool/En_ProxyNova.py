@@ -39,7 +39,7 @@ class ProxyNova(BaseProxySpider):
                     ipstr2 = params[2]
                     ip = ipstr1[ippos:] + ipstr2 + ":" + proxy_item[1]
                     # IP:端口, 代理类型(Http/Https), 匿名性,  录入时间, 响应时间, 代理所在地
-                    result.append([ip, "None", ProxyType.Elite, "None", "None", "None", self.name])
+                    proxy_list.append([ip, "None", ProxyType.Elite, "None", "None", "None", self.name])
                 except Exception:
                     pass
         except Exception as e:
