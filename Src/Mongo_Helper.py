@@ -9,9 +9,9 @@ import configparser
 
 from component.logger_config import report_logger as logger
 
-data_base = 'ksou_db'
-page_table = 'ksou_detail'
-task_table = 'ksou_task_record'
+data_base = 'realestateview'
+page_table = 'rv_detail'
+task_table = 'rv_task_record'
 
 
 class MongoHelper(object):
@@ -45,9 +45,8 @@ class MongoHelper(object):
         self.detail_table = self.database[page_table]
         self.task_table = self.database[task_table]
         try:
-            self.detail_table.create_index([("Rid", pymongo.ASCENDING)],background=True)
-            self.task_table.create_index([("Suburb", pymongo.ASCENDING), ("State", pymongo.ASCENDING),
-                                          ("Index", pymongo.ASCENDING)],
+            self.detail_table.create_index([("Pid", pymongo.ASCENDING)], background=True)
+            self.task_table.create_index([("Suburb", pymongo.ASCENDING), ("State", pymongo.ASCENDING)],
                                          unique=True, background=True)
         except pymongo.errors.DuplicateKeyError:
             print("创建索引失败，已存在重复数据")
@@ -93,26 +92,21 @@ class MongoHelper(object):
             self.task_table.update_one({"Suburb": str(Suburb), "State": str(State)},
                                        {"$addToSet": {"indexes": Index}})
         except Exception as e:
-            logger.error("更新任务记录失败 id : "+ str(e))
+            logger.error("更新任务记录失败 id : " + str(e))
 
     def get_valid_task(self, limit: int = 0):
         """
         获得还有未完成d的任务
         :return: 包含所有未执行的任务
         """
-        cursor = self.task_table.find({"indexes": {"$nin": [False]}, "indexes.30": {"$exists": 0}},
+        cursor = self.task_table.find({"indexes": {"$nin": [False]}},
                                       {"_id": 0, "Suburb": 1, "State": 1, "indexes": 1}).limit(limit)
 
         task_list = list()
         for task in cursor:
             suburb = task["Suburb"]
             state = task["State"]
-            if len(task["indexes"]) == 0:
-                task_list.append([suburb, state, 0])
-            else:
-                for i in range(30):
-                    if i not in task["indexes"]:
-                        task_list.append([suburb, state, i])
+            task_list.append([suburb, state, max(task["indexes"])])
 
         return task_list
 
@@ -157,6 +151,5 @@ if __name__ == '__main__':
     # 慎用
     MongoDB = MongoHelper()
     MongoDB.insert_tasks([['Goulburn', 'NSW']])
-    resutlt = MongoDB.update_task_record("Goulburn", "NSW",1)
+    resutlt = MongoDB.update_task_record("Goulburn", "NSW", 1)
     MongoDB.recreate()
-

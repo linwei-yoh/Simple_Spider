@@ -69,7 +69,7 @@ class FetchThreadProxy(Thread):
             self.client.add_proxy_list(proxy)
         # 重新爬取
         elif fetch_result == 0:
-            params["Deep"] += 1
+            params["Repeat"] += 1
             self.spiderManager.fetch_queue.put_nowait(params)
         # 爬取失败
         elif fetch_result == -1:
@@ -125,7 +125,7 @@ class FetchThread(Thread):
             self.spiderManager.parse_queue.put_nowait([params, content])
         # 重新爬取
         elif fetch_result == 0:
-            params["Deep"] += 1
+            params["Repeat"] += 1
             self.spiderManager.fetch_queue.put_nowait(params)
         # 爬取失败
         elif fetch_result == -1:
