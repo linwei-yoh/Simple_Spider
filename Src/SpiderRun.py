@@ -17,19 +17,13 @@ from overwrite.Save_Worker import RpSaveWorker
 from Config import config
 
 
-def WebSpider_Start():
+def WebSpider_Start(start_tasks):
     # 持久化数据库
     mongo_client = MongoHelper()
+
     # 缓存数据库
     redis_client = RedisClient()
     redis_client.flush_all()
-
-    task_list = mongo_client.get_valid_task()
-    task_size = len(task_list)
-    print("待处理task数量 : %s" % task_size)
-    if task_size == 0:
-        print("无需要处理的task")
-        return
 
     thread_num = config.Spider_config.get("thread_num", 5)
     parser_num = config.Spider_config.get("parser_num", 1)
@@ -52,22 +46,23 @@ def WebSpider_Start():
         fetch_worker = RpFetchWorker(session, max_repeat=max_retries)
         parse_worker = RpPaeseWorker()
         save_worker = RpSaveWorker(mongo_client)
-        web_spider = WebSpider(fetch_worker, parse_worker, save_worker, schedule, redis_client)
+        web_spider = WebSpider(fetch_worker, parse_worker, save_worker, schedule, redis_client, proxy=False)
 
         # 根据任务状态表 添加任务队列
         print("开始载入task:-----------------")
-
         p = redis_client.client.pipeline()
-        for task in task_list:
-            suburb, state, index = task
-            redis_client.add_new_task(suburb, state, index)
+        for task in start_tasks:
+            suburb, state, postcode = task
+            redis_client.add_new_task(suburb, state, postcode, 1, "Rent")
+            redis_client.add_new_task(suburb, state, postcode, 1, "Sold")
         p.execute()
         print("载入task完成:-----------------")
 
         # fetcher_num 采集线程数
         web_spider.start_work_and_wait_done(fetcher_num=thread_num, parser_num=parser_num, monitor_time=monitor_time)
     print("爬取完成")
+    redis_client.flush_all()
 
 
 if __name__ == '__main__':
-    WebSpider_Start()
+    WebSpider_Start([])
