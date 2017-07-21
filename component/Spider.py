@@ -7,7 +7,7 @@ from Proxy_Process import ProxyPoolProcess
 from Schedule import Schedule
 from Clock_Thread import ClockThread
 from Task_Allot_Thread import TaskAllot
-from Fetch_Thread import FetchThread,FetchThreadProxy
+from Fetch_Thread import FetchThread, FetchThreadProxy
 from Parse_Thread import ParseThread
 from Save_Thread import SaveThread
 from Monitor_Thread import MonitorThread
@@ -52,6 +52,7 @@ class Spider(object):
 
         # 爬取线程
         if self.proxy:
+            print("启用 代理模式")
             fetch_thread = FetchThreadProxy(self.client, self.fetcher, fetcher_num, self.spiderManager)
         else:
             fetch_thread = FetchThread(self.client, self.fetcher, fetcher_num, self.spiderManager)
@@ -60,10 +61,6 @@ class Spider(object):
         parse_thread = ParseThread(self.client, self.parser, parser_num, self.spiderManager)
         # 存储线程
         save_thread = SaveThread(self.saver, self.spiderManager)
-
-        if self.proxy:
-            proxy_pool = ProxyPoolProcess()
-            proxy_pool.start()
 
         for thread in [clock_thread, task_allot_thread, fetch_thread, parse_thread, save_thread, monitor_thread]:
             thread.start()
