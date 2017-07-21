@@ -20,7 +20,7 @@ class MongoHelper(object):
         self.rent_table = self.database[config.rent_table]
         self.sold_table = self.database[config.sold_table]
         self.create_index()
-        self.timestamp = datetime.utcnow()
+        self.update_date = datetime.utcnow()
 
     def recreate(self):
         """
@@ -53,12 +53,12 @@ class MongoHelper(object):
         try:
             if key == "Rent":
                 for item in items:
-                    item["timestamp"] = self.timestamp
+                    item["timestamp"] = self.update_date
                     item['otm_flag'] = 1  # 0:not find 1:on market
                     self.rent_table.update_one({"pid": item["pid"]}, {"$set": item}, upsert=True)
             elif key == "Sold":
                 for item in items:
-                    item["timestamp"] = self.timestamp
+                    item["timestamp"] = self.update_date
                     item['otm_flag'] = 1
                     self.sold_table.update_one({"pid": item["pid"]}, {"$set": item}, upsert=True)
             return True
@@ -67,8 +67,8 @@ class MongoHelper(object):
             return False
 
     def update_otm_flag(self):
-        self.rent_table.update_many({"timestamp": {"$ne": self.timestamp}}, {"$set": {'otm_flag': 0}})
-        self.sold_table.update_many({"timestamp": {"$ne": self.timestamp}}, {"$set": {'otm_flag': 0}})
+        self.rent_table.update_many({"timestamp": {"$ne": self.update_date}}, {"$set": {'otm_flag': 0}})
+        self.sold_table.update_many({"timestamp": {"$ne": self.update_date}}, {"$set": {'otm_flag': 0}})
 
 
 if __name__ == '__main__':

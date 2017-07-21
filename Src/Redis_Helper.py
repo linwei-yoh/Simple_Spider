@@ -16,11 +16,11 @@ class RedisClient(object):
         pool = redis.ConnectionPool(host=redis_config['host'], port=redis_config['port'], db=redis_config["db"])
         self.client = redis.StrictRedis(connection_pool=pool)
 
-    def flush_all(self):
+    def init_tables(self):
         """初始化所有的key"""
         self.client.delete(TASK_LIST)
         self.client.delete(TASK_SET)
-        report_logger.error("Redis 擦除完成")
+        print("Redis 擦除完成")
 
     def add_proxy_list(self, ip: str):
         "将一个有效的代理插回队列中"
@@ -80,4 +80,4 @@ class RedisClient(object):
 if __name__ == '__main__':
     redis_client = RedisClient()
 
-    redis_client.flush_all()
+    redis_client.init_tables()

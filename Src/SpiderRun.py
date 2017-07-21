@@ -10,9 +10,9 @@ from Redis_Helper import RedisClient
 
 from component.Spider import Spider as WebSpider
 from component.Schedule import Schedule
-from overwrite.Fetch_Worker import RpFetchWorker
-from overwrite.Parse_Worker import RpPaeseWorker
-from overwrite.Save_Worker import RpSaveWorker
+from overwrite.Fetch_Worker import OwFetchWorker
+from overwrite.Parse_Worker import OwPaeseWorker
+from overwrite.Save_Worker import OwSaveWorker
 
 from Config import config
 
@@ -23,7 +23,7 @@ def WebSpider_Start(start_tasks):
 
     # 缓存数据库
     redis_client = RedisClient()
-    redis_client.flush_all()
+    redis_client.init_tables()
 
     thread_num = config.Spider_config.get("thread_num", 5)
     parser_num = config.Spider_config.get("parser_num", 1)
@@ -43,9 +43,9 @@ def WebSpider_Start(start_tasks):
         session.mount('http://', requests.adapters.HTTPAdapter(pool_maxsize=thread_num))
 
         # 配置组件
-        fetch_worker = RpFetchWorker(session, max_repeat=max_retries)
-        parse_worker = RpPaeseWorker()
-        save_worker = RpSaveWorker(mongo_client)
+        fetch_worker = OwFetchWorker(session, max_repeat=max_retries)
+        parse_worker = OwPaeseWorker()
+        save_worker = OwSaveWorker(mongo_client)
         web_spider = WebSpider(fetch_worker, parse_worker, save_worker, schedule, redis_client, proxy=False)
 
         # 根据任务状态表 添加任务队列
@@ -61,7 +61,7 @@ def WebSpider_Start(start_tasks):
         # fetcher_num 采集线程数
         web_spider.start_work_and_wait_done(fetcher_num=thread_num, parser_num=parser_num, monitor_time=monitor_time)
     print("爬取完成")
-    redis_client.flush_all()
+    redis_client.init_tables()
 
 
 if __name__ == '__main__':

@@ -65,7 +65,7 @@ class ParseThread(Thread):
         parse_result, task_list, save_list = value.result()
 
         deep = params["Deep"]
-        if parse_result == 2:
+        if parse_result == 1:
             for item in save_list:
                 self.spiderManager.save_queue.put_nowait([params, item])
 
@@ -74,10 +74,6 @@ class ParseThread(Thread):
                 state = task["sta"]
                 index = task["index"]
                 self.client.add_new_task(suburb, state, index, deep=deep + 1)
-        elif parse_result == 1:
-            for item in save_list:
-                self.spiderManager.save_queue.put_nowait([params, item])
-            self.spiderManager.save_queue.put_nowait([params, False])
         else:
             self.spiderManager.save_queue.put_nowait([params, False])
 
@@ -93,7 +89,7 @@ if __name__ == '__main__':
     for i in range(100):
         qb.put_nowait([1, 2, 3, "task %s" % i])
 
-    parse = ParseThread(worker, 3, qa, qb, qc)
+    parse = ParseThread(worker, 3, qa, qb)
     parse.start()
     parse.join()
     pass

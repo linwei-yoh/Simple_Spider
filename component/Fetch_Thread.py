@@ -16,11 +16,16 @@ class FetchWorker(object):
     """
     覆盖url_fetch方法
     """
+
     def __init__(self, max_repeat):
         self.max_repeat = max_repeat
 
-    def url_fetch(self, params, proxy):
+    def url_fetch(self, params):
         result = params
+        return result
+
+    def url_fetch_proxy(self, params, proxy):
+        result = params + proxy
         return result
 
 
@@ -54,7 +59,7 @@ class FetchThreadProxy(Thread):
                     if self.client.proxy_list_size() > 0:
                         params = self.spiderManager.fetch_queue.get(block=True, timeout=5)
                         proxy = self.client.get_one_proxy()
-                        executor.submit(self.worker.url_fetch, params, proxy) \
+                        executor.submit(self.worker.url_fetch_proxy, params, proxy) \
                             .add_done_callback(partial(self.callback, params, proxy))
                 except queue.Empty:
                     if self.spiderManager.Fetch_Sta == ThreadSta.Finish:
@@ -137,6 +142,7 @@ class FetchThread(Thread):
             self.spiderManager.save_queue.put_nowait([params, False])
 
         self.spiderManager.fetch_queue.task_done()  # 可能因为线程池报错而没执行到
+
 
 if __name__ == '__main__':
     pass

@@ -6,7 +6,7 @@
 from component.Save_Thread import SaveWorker
 
 
-class RpSaveWorker(SaveWorker):
+class OwSaveWorker(SaveWorker):
     def __init__(self, client):
         SaveWorker.__init__(self)
         self.client = client

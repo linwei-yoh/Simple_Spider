@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # __author__ = 'AL'
-import time
 
-from Proxy_Process import ProxyPoolProcess
+import time
 from Schedule import Schedule
 from Clock_Thread import ClockThread
 from Task_Allot_Thread import TaskAllot
@@ -35,12 +34,14 @@ class Spider(object):
         self.schedule = schedule
         self.spiderManager = SpiderManager()
 
+        self.count = 0
+
     def start_work_and_wait_done(self, fetcher_num=10, parser_num=1, monitor_time=5):
         """
         开启爬取
+        :param monitor_time: 监视线程报告间隔
         :param fetcher_num: 爬取线程数
         :param parser_num:  解析进程数
-        :param montion_time: 监视线程报告间隔
         """
         # 时钟线程
         clock_thread = ClockThread(self.schedule, self.spiderManager)
@@ -73,29 +74,34 @@ class Spider(object):
 
         for thread in [fetch_thread, parse_thread, save_thread, monitor_thread]:
             thread.join()
+        report_logger.error("任务全部完成")
 
     def set_start_url(self, *args):
         if self.client is None:
             self.spiderManager.fetch_queue.put_nowait(args)
         else:
-            self.client.add_idle_task(args)
+            self.client.add_new_task(args)
 
     def is_all_task_done(self):
         if not self.spiderManager.fetch_queue.is_valid:
             if self.spiderManager.parse_queue.is_counter_equal() and \
                     self.spiderManager.save_queue.is_counter_equal():
-                return True
+                self.count += 1
             else:
-                return False
+                self.count = 0
         else:
-            if self.spiderManager.fetch_queue.is_counter_equal() and \
-                    self.spiderManager.parse_queue.is_counter_equal() and \
-                    self.spiderManager.save_queue.is_counter_equal():
-                if self.client.get_idle_tasks_size() == 0:
-                    report_logger.error("任务全部完成")
-                    return True
+            if self.client.get_idle_tasks_size() == 0:
+                if self.spiderManager.fetch_queue.is_counter_equal() and \
+                        self.spiderManager.parse_queue.is_counter_equal() and \
+                        self.spiderManager.save_queue.is_counter_equal():
+                    self.count += 1
             else:
-                return False
+                self.count = 0
+
+        if self.count >= 10:
+            return True
+        else:
+            return False
         pass
 
 
