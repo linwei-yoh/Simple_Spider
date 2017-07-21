@@ -4,68 +4,54 @@
 
 import redis
 import json
-import configparser
 from logger_config import report_logger
+from Config import config
 
 TASK_LIST = "idle_tasks"  # flag of idle_tasks
-TASK_SET = "task_set"   # 任务集合
-PROXY_SET = "proxy_set"  # 已经获取过的ip集合
-PROXY_LIST = "proxy_pool"  # 当前可以ip集合
-
+TASK_SET = "task_set"  # 任务集合
 
 class RedisClient(object):
     def __init__(self):
-        config = configparser.ConfigParser()
-        config.read("../Config/config.ini")
-        host = config.get("redis", "host")
-        port = int(config.get("redis", "port"))
-        pool = redis.ConnectionPool(host=host, port=port)
+        redis_config = config.DB_config.get("redis", None)
+        pool = redis.ConnectionPool(host=redis_config['host'], port=redis_config['port'], db=redis_config["db"])
         self.client = redis.StrictRedis(connection_pool=pool)
 
     def flush_all(self):
         """初始化所有的key"""
-        self.client.flushall()
+        self.client.delete(TASK_LIST)
+        self.client.delete(TASK_SET)
         report_logger.error("Redis 擦除完成")
-
-    def insert_proxy_set(self, proxy: str):
-        """将不存在于代理集合中的IP,加入集合中,并插入可用代理列表的末尾"""
-        if not self.client.sismember(PROXY_SET, proxy):
-            self.client.sadd(PROXY_SET, proxy)
-            self.client.rpush(PROXY_LIST, proxy)
 
     def add_proxy_list(self, ip: str):
         "将一个有效的代理插回队列中"
-        self.client.rpush(PROXY_LIST, ip)
+        self.client.rpush(config.free_ipproxy_table, ip)
 
     def get_one_proxy(self):
         "获取一个代理,如果列表为空则阻塞"
-        result = self.client.blpop(PROXY_LIST)
-        result = result[1].decode()
-        return result
+        *_, result = self.client.blpop(config.free_ipproxy_table)
+        return result.decode()
 
     def proxy_list_size(self):
         "获取剩余代理数量"
-        return self.client.llen(PROXY_LIST)
+        return self.client.llen(config.free_ipproxy_table)
 
     def add_idle_task(self, *args, deep=0, repeat=0):
         """
-        插入一个任务到redis爬取任务列表并返回当前列表长度
-        args : suburb , sta , index 
+        不带去重的任务插入
         """
-        suburb = args[0]
-        state = args[1]
-        index = args[2]
-        task_item = {"Suburb": suburb, "State": state, "Index": index, "Deep": deep, "Repeat": repeat}
+        suburb, state, postcode, index, key = args
+        task_item = {"Suburb": suburb, "State": state, "Postcode": postcode, "Index": index, "Key": key,
+                     "Deep": deep, "Repeat": repeat}
         self.client.rpush(TASK_LIST, json.dumps(task_item))
 
     def add_new_task(self, *args, deep=0, repeat=0):
-        suburb = args[0]
-        state = args[1]
-        index = args[2]
-        task_set = json.dumps([suburb, state, index])
+        """带去重的任务插入"""
+        suburb, state, postcode, index, key = args
+        task_set = json.dumps(args)
         if not self.client.sismember(TASK_SET, task_set):
             self.client.sadd(TASK_SET, task_set)
-            task_item = {"Suburb": suburb, "State": state, "Index": index, "Deep": deep, "Repeat": repeat}
+            task_item = {"Suburb": suburb, "State": state, "Postcode": postcode, "Index": index, "Key": key,
+                         "Deep": deep, "Repeat": repeat}
             self.client.rpush(TASK_LIST, json.dumps(task_item))
 
     def get_idle_task(self, num=1):
@@ -93,8 +79,5 @@ class RedisClient(object):
 
 if __name__ == '__main__':
     redis_client = RedisClient()
-    redis_client.add_idle_task("suburb", "sta", 0)
-    result = redis_client.get_idle_task(1)
-    print('tasks', result)
 
     redis_client.flush_all()

@@ -4,7 +4,6 @@
 
 import requests
 import requests.adapters
-import configparser
 
 from Mongo_Helper import MongoHelper
 from Redis_Helper import RedisClient
@@ -14,6 +13,8 @@ from component.Schedule import Schedule
 from overwrite.Fetch_Worker import RpFetchWorker
 from overwrite.Parse_Worker import RpPaeseWorker
 from overwrite.Save_Worker import RpSaveWorker
+
+from Config import config
 
 
 def WebSpider_Start():
@@ -30,18 +31,15 @@ def WebSpider_Start():
         print("无需要处理的task")
         return
 
-    config = configparser.ConfigParser()
-    config.read("../Config/config.ini")
-
-    max_retries = int(config.get("spider", "retry_times"))
-    thread_num = int(config.get("spider", "thread_num"))
-    parser_num = int(config.get("spider", "parser_num"))
-    monitor_time = int(config.get("spider", "monitor_time"))
-    start_time = config.get("spider", "fast_start")
-    end_time = config.get("spider", "fast_end")
-    fast_fcy = int(config.get("spider", "fast_fcy"))
-    nor_fcy = int(config.get("spider", "nor_fcy"))
-    fetch_interval = int(config.get("spider", "fetch_interval"))
+    thread_num = config.Spider_config.get("thread_num", 5)
+    parser_num = config.Spider_config.get("parser_num", 1)
+    max_retries = config.Spider_config.get("retry_times", 3)
+    monitor_time = config.Spider_config.get("monitor_time", 5)
+    start_time = config.Spider_config.get("fast_start", "20:00:00")
+    end_time = config.Spider_config.get("fast_end", "6:00:00")
+    fast_fcy = config.Spider_config.get("fast_fcy", 5)
+    nor_fcy = config.Spider_config.get("nor_fcy", 5)
+    fetch_interval = config.Spider_config.get("fetch_interval", 1)
 
     schedule = Schedule(start_time, end_time, fast_fcy, nor_fcy, fetch_interval)
 
